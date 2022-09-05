@@ -43,8 +43,8 @@ members = [
 futures-core = { version = "0.3", default-features = false }
 futures-sink = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
-tokio-util = { git="https://github.com/WasmEdge/tokio.git", branch = "wasmedge", features = ["codec"] }
-tokio = { git="https://github.com/WasmEdge/tokio.git", branch = "wasmedge", features = ["io-util"] }
+tokio-util = { git="https://github.com/WasmEdge/tokio.git", features = ["codec"] }
+tokio = { git="https://github.com/WasmEdge/tokio.git", features = ["io-util"] }
 bytes = "1"
 http = "0.2"
 tracing = { version = "0.1.21", default-features = false, features = ["std"] }
@@ -65,7 +65,7 @@ serde = "1.0.0"
 serde_json = "1.0.0"
 
 # Examples
-tokio = { git="https://github.com/WasmEdge/tokio.git", branch = "wasmedge", features = ["rt-multi-thread", "macros", "sync", "net"] }
+tokio = { git="https://github.com/WasmEdge/tokio.git", features = ["rt-multi-thread", "macros", "sync", "net"] }
 env_logger = { version = "0.9", default-features = false }
 tokio-rustls = "0.23.2"
 webpki-roots = "0.22.2"
