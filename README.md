@@ -1,14 +1,6 @@
-# H2
+# H2 for WebAssembly
 
-A Tokio aware, HTTP/2 client & server implementation for Rust.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Crates.io](https://img.shields.io/crates/v/h2.svg)](https://crates.io/crates/h2)
-[![Documentation](https://docs.rs/h2/badge.svg)][dox]
-
-More information about this crate can be found in the [crate documentation][dox].
-
-[dox]: https://docs.rs/h2
+A Tokio aware, HTTP/2 client & server implementation for Rust. Compiled to WebAssembly.
 
 ## Features
 
@@ -28,7 +20,7 @@ specification. It does not handle:
 * TLS
 * Any feature not described by the HTTP/2 specification.
 
-This crate is now used by [hyper](https://github.com/hyperium/hyper), which will provide all of these features.
+This crate is now used by [hyper](https://github.com/WasmEdge/hyper), which will provide all of these features.
 
 ## Usage
 
@@ -36,7 +28,7 @@ To use `h2`, first add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-h2 = "0.3"
+h2_wasi = "0.3"
 ```
 
 Next, add this to your crate:
@@ -51,21 +43,3 @@ fn main() {
 }
 ```
 
-## FAQ
-
-**How does h2 compare to [solicit] or [rust-http2]?**
-
-The h2 library has implemented more of the details of the HTTP/2 specification
-than any other Rust library. It also passes the [h2spec] set of tests. The h2
-library is rapidly approaching "production ready" quality.
-
-Besides the above, Solicit is built on blocking I/O and does not appear to be
-actively maintained.
-
-**Is this an embedded Java SQL database engine?**
-
-[No](https://www.h2database.com).
-
-[solicit]: https://github.com/mlalic/solicit
-[rust-http2]: https://github.com/stepancheg/rust-http2
-[h2spec]: https://github.com/summerwind/h2spec
