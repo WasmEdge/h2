@@ -5,8 +5,8 @@ use futures::StreamExt;
 use h2_support::prelude::*;
 use tokio::io::AsyncWriteExt;
 
-const SETTINGS: &'static [u8] = &[0, 0, 0, 4, 0, 0, 0, 0, 0];
-const SETTINGS_ACK: &'static [u8] = &[0, 0, 0, 4, 1, 0, 0, 0, 0];
+const SETTINGS: &[u8] = &[0, 0, 0, 4, 0, 0, 0, 0, 0];
+const SETTINGS_ACK: &[u8] = &[0, 0, 0, 4, 1, 0, 0, 0, 0];
 
 #[tokio::test]
 async fn read_preface_in_multiple_frames() {
@@ -880,6 +880,40 @@ async fn too_big_headers_sends_reset_after_431_if_not_eos() {
 }
 
 #[tokio::test]
+async fn pending_accept_recv_illegal_content_length_data() {
+    h2_support::trace_init!();
+    let (io, mut client) = mock::new();
+
+    let client = async move {
+        let settings = client.assert_server_handshake().await;
+        assert_default_settings!(settings);
+        client
+            .send_frame(
+                frames::headers(1)
+                    .request("POST", "https://a.b")
+                    .field("content-length", "1"),
+            )
+            .await;
+        client
+            .send_frame(frames::data(1, &b"hello"[..]).eos())
+            .await;
+        client.recv_frame(frames::reset(1).protocol_error()).await;
+        idle_ms(10).await;
+    };
+
+    let srv = async move {
+        let mut srv = server::Builder::new()
+            .handshake::<_, Bytes>(io)
+            .await
+            .expect("handshake");
+
+        let _req = srv.next().await.expect("req").expect("is_ok");
+    };
+
+    join(client, srv).await;
+}
+
+#[tokio::test]
 async fn poll_reset() {
     h2_support::trace_init!();
     let (io, mut client) = mock::new();
@@ -1214,7 +1248,12 @@ async fn extended_connect_protocol_enabled_during_handshake() {
 
         let mut srv = builder.handshake::<_, Bytes>(io).await.expect("handshake");
 
-        let (_req, mut stream) = srv.next().await.unwrap().unwrap();
+        let (req, mut stream) = srv.next().await.unwrap().unwrap();
+
+        assert_eq!(
+            req.extensions().get::<crate::ext::Protocol>(),
+            Some(&crate::ext::Protocol::from_static("the-bread-protocol"))
+        );
 
         let rsp = Response::new(());
         stream.send_response(rsp, false).unwrap();
