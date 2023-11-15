@@ -51,7 +51,7 @@ futures-util = { version = "0.3", default-features = false }
 tokio-util_wasi = { version = "0.7.4", features = ["codec", "io"] }
 tokio_wasi = {version = "1", features = ["io-util"] }
 bytes = "1"
-http = "0.2"
+http = "1"
 tracing = { version = "0.1.35", default-features = false, features = ["std"] }
 fnv = "1.0.5"
 slab = "0.4.2"
