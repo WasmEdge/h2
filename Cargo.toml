@@ -21,8 +21,6 @@ exclude = ["fixtures/**", "ci/**"]
 edition = "2018"
 rust-version = "1.63"
 
-publish = false
-
 [lib]
 name = "h2"
 path = "src/lib.rs"
