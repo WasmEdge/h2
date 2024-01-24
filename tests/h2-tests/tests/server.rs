@@ -296,10 +296,10 @@ async fn push_request_against_concurrency() {
             .await;
         client.recv_frame(frames::data(2, &b""[..]).eos()).await;
         client
-            .recv_frame(frames::headers(1).response(200).eos())
+            .recv_frame(frames::headers(4).response(200).eos())
             .await;
         client
-            .recv_frame(frames::headers(4).response(200).eos())
+            .recv_frame(frames::headers(1).response(200).eos())
             .await;
     };
 
@@ -553,7 +553,7 @@ async fn recv_connection_header() {
 }
 
 #[tokio::test]
-async fn sends_reset_cancel_when_req_body_is_dropped() {
+async fn sends_reset_no_error_when_req_body_is_dropped() {
     h2_support::trace_init!();
     let (io, mut client) = mock::new();
 
@@ -563,8 +563,11 @@ async fn sends_reset_cancel_when_req_body_is_dropped() {
         client
             .send_frame(frames::headers(1).request("POST", "https://example.com/"))
             .await;
+        // server responded with data before consuming POST-request's body, resulting in `RST_STREAM(NO_ERROR)`.
+        client.recv_frame(frames::headers(1).response(200)).await;
+        client.recv_frame(frames::data(1, vec![0; 16384])).await;
         client
-            .recv_frame(frames::headers(1).response(200).eos())
+            .recv_frame(frames::data(1, vec![0; 16384]).eos())
             .await;
         client
             .recv_frame(frames::reset(1).reason(Reason::NO_ERROR))
@@ -578,7 +581,8 @@ async fn sends_reset_cancel_when_req_body_is_dropped() {
             assert_eq!(req.method(), &http::Method::POST);
 
             let rsp = http::Response::builder().status(200).body(()).unwrap();
-            stream.send_response(rsp, true).unwrap();
+            let mut tx = stream.send_response(rsp, false).unwrap();
+            tx.send_data(vec![0; 16384 * 2].into(), true).unwrap();
         }
         assert!(srv.next().await.is_none());
     };
@@ -1122,6 +1126,7 @@ async fn request_without_authority() {
 
 #[tokio::test]
 async fn serve_when_request_in_response_extensions() {
+    use std::sync::Arc;
     h2_support::trace_init!();
     let (io, mut client) = mock::new();
 
@@ -1145,7 +1150,7 @@ async fn serve_when_request_in_response_extensions() {
         let (req, mut stream) = srv.next().await.unwrap().unwrap();
 
         let mut rsp = http::Response::new(());
-        rsp.extensions_mut().insert(req);
+        rsp.extensions_mut().insert(Arc::new(req));
         stream.send_response(rsp, true).unwrap();
 
         assert!(srv.next().await.is_none());
@@ -1370,6 +1375,39 @@ async fn reject_non_authority_target_on_connect_request() {
         let mut srv = builder.handshake::<_, Bytes>(io).await.expect("handshake");
 
         assert!(srv.next().await.is_none());
+
+        poll_fn(move |cx| srv.poll_closed(cx))
+            .await
+            .expect("server");
+    };
+
+    join(client, srv).await;
+}
+
+#[tokio::test]
+async fn reject_informational_status_header_in_request() {
+    h2_support::trace_init!();
+
+    let (io, mut client) = mock::new();
+
+    let client = async move {
+        let _ = client.assert_server_handshake().await;
+
+        let status_code = 128;
+        assert!(StatusCode::from_u16(status_code)
+            .unwrap()
+            .is_informational());
+
+        client
+            .send_frame(frames::headers(1).response(status_code))
+            .await;
+
+        client.recv_frame(frames::reset(1).protocol_error()).await;
+    };
+
+    let srv = async move {
+        let builder = server::Builder::new();
+        let mut srv = builder.handshake::<_, Bytes>(io).await.expect("handshake");
 
         poll_fn(move |cx| srv.poll_closed(cx))
             .await

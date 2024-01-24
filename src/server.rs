@@ -508,12 +508,6 @@ where
         self.connection.poll(cx).map_err(Into::into)
     }
 
-    #[doc(hidden)]
-    #[deprecated(note = "renamed to poll_closed")]
-    pub fn poll_close(&mut self, cx: &mut Context) -> Poll<Result<(), crate::Error>> {
-        self.poll_closed(cx)
-    }
-
     /// Sets the connection to a GOAWAY state.
     ///
     /// Does not terminate the connection. Must continue being polled to close
@@ -937,7 +931,7 @@ impl Builder {
     /// stream have been written to the connection, the send buffer capacity
     /// will be freed up again.
     ///
-    /// The default is currently ~400MB, but may change.
+    /// The default is currently ~400KB, but may change.
     ///
     /// # Panics
     ///
